@@ -6,7 +6,7 @@ import ConfigSpace.hyperparameters as CSH
 import numpy as np
 
 from dacbench.abstract_benchmark import AbstractBenchmark, objdict
-from dacbench.envs import ContinuousSigmoidEnv, ContinuousStateSigmoidEnv, SigmoidEnv
+from dacbench.envs import ContinuousSigmoidEnv, ContinuousStateSigmoidEnv, SigmoidEnv, LeaderFollowerSigmoidEnv
 
 ACTION_VALUES = (5, 10)
 
@@ -115,9 +115,16 @@ class SigmoidBenchmark(AbstractBenchmark):
                         f' be either of type "Box" for continuous actions or "Discrete".'
                     )
             else:  # ... discrete.
-                env = SigmoidEnv(self.config)
+                if self.config.get("leader_follower", False):
+                    env = LeaderFollowerSigmoidEnv(self.config)
+                else:
+                    env = SigmoidEnv(self.config)
         else:  # If the type is not specified we the simplest, fully discrete version.
-            env = SigmoidEnv(self.config)
+            if self.config.get("leader_follower", False):
+                env = LeaderFollowerSigmoidEnv(self.config)
+            else:
+                env = SigmoidEnv(self.config)
+            # env = SigmoidEnv(self.config)
         for func in self.wrap_funcs:
             env = func(env)
 
@@ -177,7 +184,7 @@ class SigmoidBenchmark(AbstractBenchmark):
                 if not len(f) == 0:
                     self.config[keyword][inst_id] = f
 
-    def get_benchmark(self, dimension=None, seed=0):
+    def get_benchmark(self, dimension=None, seed=0) -> SigmoidEnv:
         """
         Get Benchmark from DAC paper
 
