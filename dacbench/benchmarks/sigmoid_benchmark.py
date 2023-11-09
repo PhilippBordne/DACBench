@@ -73,10 +73,6 @@ class SigmoidBenchmark(AbstractBenchmark):
         if not self.config:
             self.config = objdict(SIGMOID_DEFAULTS.copy())
 
-        for key in SIGMOID_DEFAULTS:
-            if key not in self.config:
-                self.config[key] = SIGMOID_DEFAULTS[key]
-
     def get_environment(self):
         """
         Return Sigmoid env with current configuration
