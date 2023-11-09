@@ -181,7 +181,7 @@ class SigmoidBenchmark(AbstractBenchmark):
                 if not len(f) == 0:
                     self.config[keyword][inst_id] = f
 
-    def get_benchmark(self, dimension=None, seed=0):
+    def get_benchmark(self, dimension=None, seed=0) -> SigmoidEnv:
         """
         Get Benchmark from DAC paper
 
