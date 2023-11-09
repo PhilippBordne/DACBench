@@ -259,7 +259,8 @@ class ContinuousSigmoidEnv(SigmoidEnv):
         return next_state, r, self.done, {}
 
 
-class SigmoidEnvLeaderFollower(SigmoidEnv):
+# TODO: Consider making this a wrapper function instead, as we simply mimic the MADAC SigmoidEnv
+class LeaderFollowerSigmoidEnv(SigmoidEnv):
     def __init__(self, config) -> None:
         """
         Initialize Sigmoid Env.
@@ -270,8 +271,8 @@ class SigmoidEnvLeaderFollower(SigmoidEnv):
             Environment configuration
 
         """
-        super(SigmoidEnvLeaderFollower, self).__init__(config)
-        
+        super(LeaderFollowerSigmoidEnv, self).__init__(config)
+        print("Creating Leader-Follower Sigmoid environment.")
         # define observation spaces per agent (follower observations include leader observations)
         # TODO: check how observations are define in MADAC paper (do agents observe complete state or only their sigmoid?)
         self.observation_spaces = {}
