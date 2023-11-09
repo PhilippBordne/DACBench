@@ -196,6 +196,7 @@ class SigmoidBenchmark(AbstractBenchmark):
         self.config = objdict(SIGMOID_DEFAULTS.copy())
         if dimension == 1:
             self.set_action_values([3])
+            self.config.default_action = [0]
             self.config.instance_set_path = (
                 "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
             )
@@ -210,6 +211,7 @@ class SigmoidBenchmark(AbstractBenchmark):
             self.set_action_values([3, 3])
         if dimension == 3:
             self.set_action_values((3, 3, 3))
+            self.config.default_action = [0, 0, 0]
             self.config.instance_set_path = (
                 "../instance_sets/sigmoid/sigmoid_3D3M_train.csv"
             )
@@ -228,6 +230,7 @@ class SigmoidBenchmark(AbstractBenchmark):
             ]
         if dimension == 5:
             self.set_action_values((3, 3, 3, 3, 3))
+            self.config.default_action = [0, 0, 0, 0, 0]
             self.config.instance_set_path = (
                 "../instance_sets/sigmoid/sigmoid_5D3M_train.csv"
             )
