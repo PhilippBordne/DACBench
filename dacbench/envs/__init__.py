@@ -8,11 +8,11 @@ from dacbench.envs.luby import LubyEnv, luby_gen
 from dacbench.envs.sigmoid import (
     ContinuousSigmoidEnv,
     ContinuousStateSigmoidEnv,
-    LeaderFollowerSigmoidEnv,
     SigmoidEnv,
 )
 from dacbench.envs.theory import TheoryEnv
 from dacbench.envs.toysgd import ToySGDEnv
+from dacbench.envs.custom_sigmoid import LeaderFollowerSigmoidEnv
 
 __all__ = [
     "LubyEnv",

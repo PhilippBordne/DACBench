@@ -12,8 +12,6 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gymnasium.spaces import MultiDiscrete, Box
-
 from dacbench import AbstractMADACEnv
 
 
@@ -36,7 +34,7 @@ class SigmoidEnv(AbstractMADACEnv):
         """
         super(SigmoidEnv, self).__init__(config)
 
-        self.shifts = [self.n_steps / 2 for _ in config["action_values"]]
+        self.shifts = [self.n_steps / 2 for _ in config["action_values"]] 
         self.slopes = [-1 for _ in config["action_values"]]
         self.slope_multiplier = config["slope_multiplier"]
         self.n_actions = len(self.action_space.nvec)
@@ -257,65 +255,3 @@ class ContinuousSigmoidEnv(SigmoidEnv):
         next_state = self.get_state(self)
         self._prev_state = next_state
         return next_state, r, self.done, {}
-
-
-# TODO: Consider making this a wrapper function instead, as we simply mimic the MADAC SigmoidEnv
-class LeaderFollowerSigmoidEnv(SigmoidEnv):
-    def __init__(self, config) -> None:
-        """
-        Initialize Sigmoid Env.
-
-        Parameters
-        ----------
-        config : objdict
-            Environment configuration
-
-        """
-        super(LeaderFollowerSigmoidEnv, self).__init__(config)
-        print("Creating Leader-Follower Sigmoid environment.")
-        # define observation spaces per agent (follower observations include leader observations)
-        # TODO: check how observations are define in MADAC paper (do agents observe complete state or only their sigmoid?)
-        self.observation_spaces = {}
-        for a in self.possible_agents:
-            self.observation_spaces[a] = self.get_observation_space(a)
-
-    def get_observation_space(self, agent_id: int):
-        """Get observation space for agent. As of now assuming that agent id induces the order of importance of the agents.
-        NOTE: Assuming that the agent-id start counting at 0."""
-        # TODO: enable processing of partial orders (e.g. for every agent specify its parents and build the action space accordingly).
-        # This will possibly require adaptating the multi-agent step where that has to ensure that agents take actions in this order
-        # and it needs to be more fine-grained to only adding the actions from predecessor agents to the observations.
-        # IDEA: store action selection per agent_id (possibly done anyways).
-        if isinstance(self.action_space, MultiDiscrete) and isinstance(self.observation_space, Box):
-            return Box(low=np.array([-np.inf for _ in range(1 + len(self.action_space.nvec) * 3 + agent_id)]),
-                       high=np.array([np.inf for _ in range(1 + len(self.action_space.nvec) * 3 + agent_id)]),
-                       dtype=np.float32)
-        elif isinstance(self.observation_space, Box):
-            raise TypeError("Only MultiDiscrete action spaces are supported.")
-        # actually this shouldn't be triggered as the sigmoid benchmark only has Box observation spaces
-        else:
-            raise TypeError("Only Box observation spaces are supported.")
-
-    def get_per_agent_observation(self, agent_id: int):
-        """In Leader-Follower setting, every agent has a specific observation which we compute here.
-        Parameters
-        ----------
-        agent_id : int
-            id of agent for which to compute observation
-        """
-        raise NotImplementedError("Not implemented yet.")
-
-    def last(self, agent_id: int = None):
-        """Get last observation, reward, terminated, truncated, info for agent.
-        Appends actions chosen by previous agents to the observation of the current agent if agent_id provided."""
-        observation, reward, termination, truncation, info = super().last()
-        if agent_id is not None:
-            # modified observation will look like:
-            # [remaining_budget, shift_0, slope_0, ..., shift_n, slope_n, last_action_0, ..., last_action_n,
-            # next_action_0, ..., next_action_agent_id-1]
-            actions_to_append = np.array([self.action[a] for a in range(agent_id)])
-            observation = np.append(observation, np.full(agent_id, actions_to_append))
-        return observation, reward, termination, truncation, info
-
-    def multi_agent_step(self, action):
-        return super().multi_agent_step(action)
