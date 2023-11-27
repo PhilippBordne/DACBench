@@ -1,60 +1,7 @@
-from gymnasium.spaces import Box, MultiDiscrete
 import numpy as np
 from typing import List
 
 from dacbench.envs import SigmoidEnv
-
-
-# TODO: Consider making this a wrapper function instead, as we simply mimic the MADAC SigmoidEnv
-class LeaderFollowerSigmoidEnv(SigmoidEnv):
-    def __init__(self, config) -> None:
-        """
-        Initialize Sigmoid Env.
-
-        Parameters
-        ----------
-        config : objdict
-            Environment configuration
-
-        """
-        super(LeaderFollowerSigmoidEnv, self).__init__(config)
-        # define observation spaces per agent (follower observations include leader observations)
-        # TODO: check how observations are define in MADAC paper (do agents observe complete state or only their sigmoid?)
-        self.observation_spaces = {}
-        for a in self.possible_agents:
-            self.observation_spaces[a] = self.get_observation_space(a)
-
-    def get_observation_space(self, agent_id: int):
-        """Get observation space for agent. As of now assuming that agent id induces the order of importance of the agents.
-        NOTE: Assuming that the agent-id start counting at 0."""
-        # TODO: enable processing of partial orders (e.g. for every agent specify its parents and build the action space accordingly).
-        # This will possibly require adaptating the multi-agent step where that has to ensure that agents take actions in this order
-        # and it needs to be more fine-grained to only adding the actions from predecessor agents to the observations.
-        # IDEA: store action selection per agent_id (possibly done anyways).
-        if isinstance(self.action_space, MultiDiscrete) and isinstance(self.observation_space, Box):
-            return Box(low=np.array([-np.inf for _ in range(1 + len(self.action_space.nvec) * 3 + agent_id)]),
-                       high=np.array([np.inf for _ in range(1 + len(self.action_space.nvec) * 3 + agent_id)]),
-                       dtype=np.float32)
-        elif isinstance(self.observation_space, Box):
-            raise TypeError("Only MultiDiscrete action spaces are supported.")
-        # actually this shouldn't be triggered as the sigmoid benchmark only has Box observation spaces
-        else:
-            raise TypeError("Only Box observation spaces are supported.")
-
-    def last(self, agent_id: int = None):
-        """Get last observation, reward, terminated, truncated, info for agent.
-        Appends actions chosen by previous agents to the observation of the current agent if agent_id provided."""
-        observation, reward, termination, truncation, info = super().last()
-        if agent_id is not None:
-            # modified observation will look like:
-            # [remaining_budget, shift_0, slope_0, ..., shift_n, slope_n, last_action_0, ..., last_action_n,
-            # next_action_0, ..., next_action_agent_id-1]
-            actions_to_append = np.array([self.action[a] for a in range(agent_id)])
-            observation = np.append(observation, np.full(agent_id, actions_to_append))
-        return observation, reward, termination, truncation, info
-
-    def multi_agent_step(self, action):
-        return super().multi_agent_step(action)
 
 
 # this is partly a hack to predict on a single sigmoid whithout touching mapping from dim to instance set
