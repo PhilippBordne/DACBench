@@ -6,7 +6,9 @@ import ConfigSpace.hyperparameters as CSH
 import numpy as np
 
 from dacbench.abstract_benchmark import AbstractBenchmark, objdict
-from dacbench.envs import ContinuousSigmoidEnv, ContinuousStateSigmoidEnv, SigmoidEnv, LeaderFollowerSigmoidEnv
+from dacbench.envs import ContinuousSigmoidEnv, ContinuousStateSigmoidEnv, SigmoidEnv
+from dacbench.envs import DiffImportanceSigmoidEnv, DiffImportanceFineTuneSigmoidEnv
+
 
 ACTION_VALUES = (5, 10)
 
@@ -51,6 +53,13 @@ SIGMOID_DEFAULTS = objdict(
         "instance_set_path": "../instance_sets/sigmoid/sigmoid_2D3M_train.csv",
         "test_set_path": "../instance_sets/sigmoid/sigmoid_2D3M_test.csv",
         "benchmark_info": INFO,
+    }
+)
+
+SIGMOID_IMPORTANCES = objdict(
+    {
+        "action_space_class": "MultiDiscrete",
+        "action_space_args": [4, 3],
     }
 )
 
@@ -115,16 +124,9 @@ class SigmoidBenchmark(AbstractBenchmark):
                         f' be either of type "Box" for continuous actions or "Discrete".'
                     )
             else:  # ... discrete.
-                if self.config.get("leader_follower", False):
-                    env = LeaderFollowerSigmoidEnv(self.config)
-                else:
-                    env = SigmoidEnv(self.config)
-        else:  # If the type is not specified we the simplest, fully discrete version.
-            if self.config.get("leader_follower", False):
-                env = LeaderFollowerSigmoidEnv(self.config)
-            else:
                 env = SigmoidEnv(self.config)
-            # env = SigmoidEnv(self.config)
+        else:  # If the type is not specified we the simplest, fully discrete version.
+            env = SigmoidEnv(self.config)
         for func in self.wrap_funcs:
             env = func(env)
 
@@ -184,7 +186,7 @@ class SigmoidBenchmark(AbstractBenchmark):
                 if not len(f) == 0:
                     self.config[keyword][inst_id] = f
 
-    def get_benchmark(self, dimension=None, seed=0) -> SigmoidEnv:
+    def get_benchmark(self, dimension=None, seed=0, multi_agent=False) -> SigmoidEnv:
         """
         Get Benchmark from DAC paper
 
@@ -194,6 +196,8 @@ class SigmoidBenchmark(AbstractBenchmark):
             Sigmoid dimension, was 1, 2, 3 or 5 in the paper
         seed : int
             Environment seed
+        multi_agent : bool
+            Whether to generate the environment with multi-agent interface
 
         Returns
         -------
@@ -201,6 +205,7 @@ class SigmoidBenchmark(AbstractBenchmark):
             Sigmoid environment
         """
         self.config = objdict(SIGMOID_DEFAULTS.copy())
+        self.config.multi_agent = multi_agent
         if dimension == 1:
             self.set_action_values([3])
             self.config.default_action = [0]
@@ -260,8 +265,110 @@ class SigmoidBenchmark(AbstractBenchmark):
                 "Action 4",
                 "Action 5",
             ]
+
         self.config.seed = seed
         self.read_instance_set()
         self.read_instance_set(test=True)
         env = SigmoidEnv(self.config)
+        return env
+
+    def get_importances_benchmark(self, dimension=1, seed=0, multi_agent=False, random_sigmoids=False, importances: np.ndarray = None) -> DiffImportanceSigmoidEnv:
+        """
+        Returns Sigmoid environment that reflects different action importances by aggregating the actions to predict on a single sigmoid.
+
+        Parameters
+        ----------
+        dimension : int
+            Number of actions to aggregate (NOTE: actions always predict on single sigmoid)
+        seed : int
+            Random seed used by the evironment.
+        multi_agent : bool
+            wether to provide the environment with the multi-agent interface
+        random_sigmoids : bool
+            whether to sample sigmoid instances at random (otherwise the 1D instances from the DAC Framework paper are used)
+        importances : np.ndarray
+            used to weigh the actions when aggregating. Should be of descending order as first action is deemed most important.
+        """
+        self.config = objdict(SIGMOID_DEFAULTS.copy())
+        self.config.multi_agent = multi_agent
+        if not random_sigmoids:
+            if dimension == 1:
+                self.set_action_values([3])
+                self.config.default_action = [0]
+                self.config.instance_set_path = (
+                    "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
+                )
+                self.config.test_set_path = "../instance_sets/sigmoid/sigmoid_1D3M_test.csv"
+                self.config.benchmark_info["state_description"] = [
+                    "Remaining Budget",
+                    "Shift",
+                    "Slope",
+                    "Action",
+                ]
+            if dimension == 2:
+                self.set_action_values([3, 3])
+                self.config.default_action = [0, 0]
+                self.config.instance_set_path = (
+                    "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
+                )
+                self.config.test_set_path = "../instance_sets/sigmoid/sigmoid_1D3M_test.csv"
+                self.config.benchmark_info["state_description"] = [
+                    "Remaining Budget",
+                    "Shift",
+                    "Slope",
+                    "Action 1",
+                    "Action 2",
+                ]
+            if dimension == 3:
+                self.set_action_values((3, 3, 3))
+                self.config.default_action = [0, 0, 0]
+                self.config.instance_set_path = (
+                    "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
+                )
+                self.config.test_set_path = "../instance_sets/sigmoid/sigmoid_1D3M_test.csv"
+                self.config.benchmark_info["state_description"] = [
+                    "Remaining Budget",
+                    "Shift",
+                    "Slope",
+                    "Action 1",
+                    "Action 2",
+                    "Action 3",
+                ]
+            if dimension == 5:
+                self.set_action_values((3, 3, 3, 3, 3))
+                self.config.default_action = [0, 0, 0, 0, 0]
+                self.config.instance_set_path = (
+                    "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
+                )
+                self.config.test_set_path = "../instance_sets/sigmoid/sigmoid_1D3M_test.csv"
+                self.config.benchmark_info["state_description"] = [
+                    "Remaining Budget",
+                    "Shift",
+                    "Slope",
+                    "Action 1",
+                    "Action 2",
+                    "Action 3",
+                    "Action 4",
+                    "Action 5",
+                ]
+        else:
+            raise NotImplementedError("Random sigmoid instances not implemented yet.")
+
+        # observation space only contains 1 sigmoid so we need to adapt it
+        self.config.observation_space_args = [
+            np.array([-np.inf for _ in range(3 + len(self.config.action_values))]),
+            np.array([np.inf for _ in range(3 + len(self.config.action_values))]),
+        ]
+
+        self.config.seed = seed
+        self.read_instance_set()
+        self.read_instance_set(test=True)
+
+        if importances is not None:
+            self.config.dim_importances = importances
+        else:
+            # weight of actions decreases by factor of 0.3
+            self.config.dim_importances = np.array([0.3**i for i in range(dimension)])
+
+        env = DiffImportanceFineTuneSigmoidEnv(self.config)
         return env

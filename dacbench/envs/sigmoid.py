@@ -244,7 +244,7 @@ class ContinuousSigmoidEnv(SigmoidEnv):
 
         # magic constants but such that the max step is ~1 and the min step is ~0.25
         self.c_step += (r + np.sqrt(np.power(r, 2) + 0.25)) / 2
-
+        
         if self.c_step >= self.n_steps:
             self.done = True
         else:

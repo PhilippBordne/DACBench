@@ -2,6 +2,7 @@ import numpy as np
 from typing import List
 
 from dacbench.envs import SigmoidEnv
+from matplotlib import pyplot as plt
 
 
 # this is partly a hack to predict on a single sigmoid whithout touching mapping from dim to instance set
@@ -24,14 +25,32 @@ class DiffImportanceSigmoidEnv(SigmoidEnv):
         self.slopes = [-1]
         self.shifts = [self.n_steps / 2]
 
+        # for plotting we keep track of the actions seen throughout the episode
+        self.episode_actions = np.full((self.n_actions, self.n_steps), np.nan)
+        self.episode_rewards = np.full((self.n_steps), np.nan)
+
         self.get_reward = self.get_default_reward
 
     def reset(self, seed=None, options={}) -> List[int]:
-        super().reset(seed, options)
+        # only prereset of parents to update the instance
+        super().reset_(seed)
+        self.episode_actions = np.full((self.n_actions, self.n_steps), np.nan)
+        self.episode_rewards = np.full((self.n_steps), np.nan)
         self.shifts = [self.instance[0]]
-        self.slopes = [self.instance[self.n_actions]]
+        self.slopes = [self.instance[1]]
         self._prev_state = None
         return self.get_state(self), {}
+
+    def step(self, action: int):
+        # # update action history
+        # if self.multi_agent:
+        #     self.action_history[self.current_agent, self.c_step] = action
+        # else:
+        self.episode_actions[:, self.c_step] = action
+        # update reward history
+        res = super().step(action)
+        self.episode_rewards[self.c_step - 1] = res[1]
+        return res
 
     def get_default_reward(self, _):
         """
@@ -63,41 +82,62 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         if "dim_importances" in config.keys():
             self.dim_importances = config["dim_importances"]
         else:
-            self.dim_importances = [0.3**i for i in range(self.n_actions)]
+            self.dim_importances = np.array([0.3**i for i in range(self.n_actions)])
 
     def get_default_reward(self, _):
         """
         Reward that computes how close the current weighted sum of actions is to the target sigmoid.
         """
-        # 1st action defines the step in the sigmoid. All other actions fine tune around it with different precisions
-        pred = self.last_action[0] / self.action_space.nvec[0]
-
-        # the other actions fine tune around first action according to their importance
-        # offset to -0.5 to have a range of [-0.5, 0.5] for all actions
-        pred += np.sum((self.last_action[1:] / self.action_space.nvec[1:] - 0.5) * np.array(self.dim_importances[1:]))
-
+        # aggregate actions into prediction on single sigmoid and compute reward by comparing to target sigmoid
+        pred = self.compute_pred_from_actions(np.array(self.last_action).reshape(-1, 1))
         reward = 1 - np.abs(self._sig(self.c_step, self.slopes[0], self.shifts[0]) - pred)
+
         # clip into reward range
         reward = max(self.reward_range[0], min(self.reward_range[1], reward))
         return reward
 
-
-class DiffImportanceLeaderFollowerSigmoidEnv(LeaderFollowerSigmoidEnv):
-    def __init__(self, config) -> None:
+    def compute_pred_from_actions(self, actions: np.ndarray) -> np.ndarray:
         """
-        Initialize Sigmoid Env.
+        Aggregates the action vector(s) into the prediction on a single sigmoid according to the action importances.
 
         Parameters
         ----------
-        config : objdict
-            Environment configuration
+        actions : np.ndarray
+            Of shape (action_dim, num_actions) Action vector(s) to aggregate into the prediction.
 
+        Returns
+        -------
+        np.ndarray
+            Of shape (num_actions) Predictions on the single sigmoid.
         """
-        super(DiffImportanceLeaderFollowerSigmoidEnv, self).__init__(config)
-        self.get_reward = self.get_default_reward
+        pred = actions[0] / (self.action_space.nvec[0] - 1)
+        # the other actions fine tune around first action according to their importance
+        pred += np.sum(((2 * actions[1:] / (self.action_space.nvec[1:].reshape(-1, 1) - 1) - 1)
+                        * np.array(self.dim_importances[1:].reshape(-1, 1))), axis=0)
+        return pred
 
-    def get_default_reward(self, _):
+    def render(self, mode: str) -> None:
         """
-        Adapted reward function where the prediction is on a single sigmoid and the action is a composure 
+        Render Env.
         """
-        pass
+        if mode == "human":
+            plt.ion()
+            plt.show()
+            plt.cla()
+            steps = np.arange(1, self.n_steps + 1)  # +1 because 
+            sigmoid = self._sig(steps, self.slopes[0], self.shifts[0])
+
+            reward_should = 1 - np.abs(sigmoid - self.compute_pred_from_actions(self.episode_actions))
+
+            plt.plot(steps, sigmoid, label="target", color="red")
+            plt.plot(steps, reward_should, label="reward should", color="orange")
+            plt.plot(steps, self.episode_rewards, label="reward", color="green")
+            preds = self.compute_pred_from_actions(self.episode_actions)
+            plt.plot(steps, preds, label="pred", color="blue")
+            # for i in range(self.n_actions):
+            #     preds = self.compute_pred_from_actions(self.episode_actions[:i + 1])
+            #     plt.plot(steps, np.sum(preds[:(i + 1)], axis=0),
+            #              label=f"pred {i}", color="blue", alpha=self.dim_importances[i])
+            plt.legend()
+            plt.title(f"Running on instance {self.instance_index}")
+            plt.pause(0.5)

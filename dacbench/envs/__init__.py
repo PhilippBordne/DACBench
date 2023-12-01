@@ -12,7 +12,7 @@ from dacbench.envs.sigmoid import (
 )
 from dacbench.envs.theory import TheoryEnv
 from dacbench.envs.toysgd import ToySGDEnv
-from dacbench.envs.custom_sigmoid import LeaderFollowerSigmoidEnv
+from dacbench.envs.custom_sigmoid import DiffImportanceSigmoidEnv, DiffImportanceFineTuneSigmoidEnv
 
 __all__ = [
     "LubyEnv",
@@ -20,6 +20,8 @@ __all__ = [
     "SigmoidEnv",
     "ContinuousSigmoidEnv",
     "ContinuousStateSigmoidEnv",
+    "DiffImportanceSigmoidEnv",
+    "DiffImportanceFineTuneSigmoidEnv",
     "FastDownwardEnv",
     "ToySGDEnv",
     "GeometricEnv",
