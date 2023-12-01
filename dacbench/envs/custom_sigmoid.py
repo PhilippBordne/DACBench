@@ -96,24 +96,31 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         reward = max(self.reward_range[0], min(self.reward_range[1], reward))
         return reward
 
-    def compute_pred_from_actions(self, actions: np.ndarray) -> np.ndarray:
+    def compute_pred_from_actions(self, actions: np.ndarray, level: int = None) -> np.ndarray:
         """
-        Aggregates the action vector(s) into the prediction on a single sigmoid according to the action importances.
+        Aggregates the action vector(s) into the prediction on a single sigmoid.
+        First action determines central value of prediction, other actions fine tune around it according to their importance.
 
         Parameters
         ----------
         actions : np.ndarray
             Of shape (action_dim, num_actions) Action vector(s) to aggregate into the prediction.
+        importances : np.ndarray
+            Of shape (num_actions) Importance of each action, used for weighted aggregations.
 
         Returns
         -------
         np.ndarray
             Of shape (num_actions) Predictions on the single sigmoid.
         """
+        # if importances is None:
+        if level is None:
+            level = len(actions)
+        importances = self.dim_importances
         pred = actions[0] / (self.action_space.nvec[0] - 1)
         # the other actions fine tune around first action according to their importance
-        pred += np.sum(((2 * actions[1:] / (self.action_space.nvec[1:].reshape(-1, 1) - 1) - 1)
-                        * np.array(self.dim_importances[1:].reshape(-1, 1))), axis=0)
+        pred += np.sum(((2 * actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 1)
+                        * np.array(importances[1:level].reshape(-1, 1))), axis=0)
         return pred
 
     def render(self, mode: str) -> None:
@@ -132,12 +139,10 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
             plt.plot(steps, sigmoid, label="target", color="red")
             plt.plot(steps, reward_should, label="reward should", color="orange")
             plt.plot(steps, self.episode_rewards, label="reward", color="green")
-            preds = self.compute_pred_from_actions(self.episode_actions)
-            plt.plot(steps, preds, label="pred", color="blue")
-            # for i in range(self.n_actions):
-            #     preds = self.compute_pred_from_actions(self.episode_actions[:i + 1])
-            #     plt.plot(steps, np.sum(preds[:(i + 1)], axis=0),
-            #              label=f"pred {i}", color="blue", alpha=self.dim_importances[i])
+            for i in range(self.n_actions):
+                preds = self.compute_pred_from_actions(self.episode_actions[:i + 1], level=i + 1)
+                plt.plot(steps, preds,
+                         label=f"pred {i}", color="blue", alpha=self.dim_importances[i])
             plt.legend()
             plt.title(f"Running on instance {self.instance_index}")
             plt.pause(0.5)
