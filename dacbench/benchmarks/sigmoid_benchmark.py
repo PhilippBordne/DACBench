@@ -142,6 +142,7 @@ class SigmoidBenchmark(AbstractBenchmark):
             A list of possible actions per dimension
         """
         del self.config["config_space"]
+        self.config.action_values = values
         self.config.action_space_args = [values]
         self.config.observation_space_args = [
             np.array([-np.inf for _ in range(1 + len(values) * 3)]),
@@ -272,7 +273,8 @@ class SigmoidBenchmark(AbstractBenchmark):
         env = SigmoidEnv(self.config)
         return env
 
-    def get_importances_benchmark(self, dimension=1, seed=0, multi_agent=False, random_sigmoids=False, importances: np.ndarray = None) -> DiffImportanceSigmoidEnv:
+    def get_importances_benchmark(self, dimension=1, seed=0, multi_agent=False, random_sigmoids=False,
+                                  importances: np.ndarray = None, reward_shape: str = 'linear') -> DiffImportanceSigmoidEnv:
         """
         Returns Sigmoid environment that reflects different action importances by aggregating the actions to predict on a single sigmoid.
 
@@ -288,6 +290,10 @@ class SigmoidBenchmark(AbstractBenchmark):
             whether to sample sigmoid instances at random (otherwise the 1D instances from the DAC Framework paper are used)
         importances : np.ndarray
             used to weigh the actions when aggregating. Should be of descending order as first action is deemed most important.
+        reward_shape : str
+            Shape of the reward function. if 'linear' the reward is 1 minus the absolute difference between the target
+            sigmoid and the prediction. If 'exponential' the reward decays exponentially with the difference between
+            the target sigmoid and the prediction.
         """
         self.config = objdict(SIGMOID_DEFAULTS.copy())
         self.config.multi_agent = multi_agent
@@ -370,5 +376,5 @@ class SigmoidBenchmark(AbstractBenchmark):
             # weight of actions decreases by factor of 0.3
             self.config.dim_importances = np.array([0.3**i for i in range(dimension)])
 
-        env = DiffImportanceFineTuneSigmoidEnv(self.config)
+        env = DiffImportanceFineTuneSigmoidEnv(self.config, reward_shape=reward_shape)
         return env

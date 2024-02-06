@@ -76,13 +76,26 @@ class DiffImportanceSigmoidEnv(SigmoidEnv):
 
 class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
     # TODO: implement me
-    def __init__(self, config) -> None:
+    def __init__(self, config, reward_shape: str = 'linear') -> None:
+        """
+        Parameters
+        ----------
+        reward_shape : str
+            Shape of the reward function. if 'linear' the reward is 1 minus the absolute difference between the target
+            sigmoid and the prediction. If 'exponential' the reward decays exponentially with the difference between
+            the target sigmoid and the prediction.
+        """
         super().__init__(config)
         # see whether dimension importances are specified in config else fall back to default
         if "dim_importances" in config.keys():
             self.dim_importances = config["dim_importances"]
         else:
             self.dim_importances = np.array([0.3**i for i in range(self.n_actions)])
+
+        if reward_shape == 'linear':
+            self.get_reward = self.get_default_reward
+        elif reward_shape == 'exponential':
+            self.get_reward = self.get_exponential_reward
 
     def get_default_reward(self, _):
         """
@@ -94,6 +107,18 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
 
         # clip into reward range
         reward = max(self.reward_range[0], min(self.reward_range[1], reward))
+        return reward
+
+    def get_exponential_reward(self, _):
+        """
+        Reward that computes how close the current weighted sum of actions is to the target sigmoid.
+        """
+        # scale of the exponent, set such that a prediction error of 1 yields a reward of 0.01
+        c = 4.6
+        # aggregate actions into prediction on single sigmoid and compute reward by comparing to target sigmoid
+        pred = self.compute_pred_from_actions(np.array(self.last_action).reshape(-1, 1))
+        reward = np.exp(-c * np.abs(self._sig(self.c_step, self.slopes[0], self.shifts[0]) - pred))
+
         return reward
 
     def compute_pred_from_actions(self, actions: np.ndarray, level: int = None) -> np.ndarray:
@@ -145,4 +170,4 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
                          label=f"pred {i}", color="blue", alpha=self.dim_importances[i])
             plt.legend()
             plt.title(f"Running on instance {self.instance_index}")
-            plt.pause(0.5)
+            plt.pause(2)
