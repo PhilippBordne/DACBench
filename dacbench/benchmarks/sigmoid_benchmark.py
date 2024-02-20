@@ -274,7 +274,8 @@ class SigmoidBenchmark(AbstractBenchmark):
         return env
 
     def get_importances_benchmark(self, dimension=1, seed=0, multi_agent=False, random_sigmoids=False,
-                                  importances: np.ndarray = None, reward_shape: str = 'linear') -> DiffImportanceSigmoidEnv:
+                                  importances: np.ndarray = None, reward_shape: str = 'linear',
+                                  exp_reward: float = 4.6) -> DiffImportanceSigmoidEnv:
         """
         Returns Sigmoid environment that reflects different action importances by aggregating the actions to predict on a single sigmoid.
 
@@ -376,5 +377,5 @@ class SigmoidBenchmark(AbstractBenchmark):
             # weight of actions decreases by factor of 0.3
             self.config.dim_importances = np.array([0.3**i for i in range(dimension)])
 
-        env = DiffImportanceFineTuneSigmoidEnv(self.config, reward_shape=reward_shape)
+        env = DiffImportanceFineTuneSigmoidEnv(self.config, reward_shape=reward_shape, exp_reward=exp_reward)
         return env

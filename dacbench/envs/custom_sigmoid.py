@@ -76,7 +76,7 @@ class DiffImportanceSigmoidEnv(SigmoidEnv):
 
 class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
     # TODO: implement me
-    def __init__(self, config, reward_shape: str = 'linear') -> None:
+    def __init__(self, config, reward_shape: str = 'linear', exp_reward: float = 4.6) -> None:
         """
         Parameters
         ----------
@@ -95,6 +95,7 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         if reward_shape == 'linear':
             self.get_reward = self.get_default_reward
         elif reward_shape == 'exponential':
+            self.exp_reward = exp_reward
             self.get_reward = self.get_exponential_reward
 
     def get_default_reward(self, _):
@@ -113,8 +114,8 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         """
         Reward that computes how close the current weighted sum of actions is to the target sigmoid.
         """
-        # scale of the exponent, set such that a prediction error of 1 yields a reward of 0.01
-        c = 4.6
+        c = self.exp_reward
+
         # aggregate actions into prediction on single sigmoid and compute reward by comparing to target sigmoid
         pred = self.compute_pred_from_actions(np.array(self.last_action).reshape(-1, 1))
         reward = np.exp(-c * np.abs(self._sig(self.c_step, self.slopes[0], self.shifts[0]) - pred))
@@ -129,9 +130,7 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         Parameters
         ----------
         actions : np.ndarray
-            Of shape (action_dim, num_actions) Action vector(s) to aggregate into the prediction.
-        importances : np.ndarray
-            Of shape (num_actions) Importance of each action, used for weighted aggregations.
+            Of shape (action_dim, 1) Action vector(s) to aggregate into the prediction.
 
         Returns
         -------
@@ -144,8 +143,10 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         importances = self.dim_importances
         pred = actions[0] / (self.action_space.nvec[0] - 1)
         # the other actions fine tune around first action according to their importance
-        pred += np.sum(((2 * actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 1)
-                        * np.array(importances[1:level].reshape(-1, 1))), axis=0)
+        # pred += np.sum(((2 * actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 1)
+        #                 * np.array(importances[1:level].reshape(-1, 1))), axis=0)
+        pred += np.sum(((actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 0.5)
+                        * np.array(importances[1:level]).reshape(-1, 1)), axis=0)
         return pred
 
     def render(self, mode: str) -> None:
