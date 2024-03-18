@@ -275,7 +275,7 @@ class SigmoidBenchmark(AbstractBenchmark):
 
     def get_importances_benchmark(self, dimension=1, seed=0, multi_agent=False, random_sigmoids=False,
                                   importances: np.ndarray = None, reward_shape: str = 'linear',
-                                  exp_reward: float = 4.6) -> DiffImportanceSigmoidEnv:
+                                  exp_reward: float = 4.6, reverse_agents: bool = False) -> DiffImportanceSigmoidEnv:
         """
         Returns Sigmoid environment that reflects different action importances by aggregating the actions to predict on a single sigmoid.
 
@@ -358,6 +358,28 @@ class SigmoidBenchmark(AbstractBenchmark):
                     "Action 4",
                     "Action 5",
                 ]
+            if dimension == 10:
+                self.set_action_values((3, 3, 3, 3, 3, 3, 3, 3, 3, 3))
+                self.config.default_action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                self.config.instance_set_path = (
+                    "../instance_sets/sigmoid/sigmoid_1D3M_train.csv"
+                )
+                self.config.test_set_path = "../instance_sets/sigmoid/sigmoid_1D3M_test.csv"
+                self.config.benchmark_info["state_description"] = [
+                    "Remaining Budget",
+                    "Shift",
+                    "Slope",
+                    "Action 1",
+                    "Action 2",
+                    "Action 3",
+                    "Action 4",
+                    "Action 5",
+                    "Action 6",
+                    "Action 7",
+                    "Action 8",
+                    "Action 9",
+                    "Action 10",
+                ]
         else:
             raise NotImplementedError("Random sigmoid instances not implemented yet.")
 
@@ -377,5 +399,5 @@ class SigmoidBenchmark(AbstractBenchmark):
             # weight of actions decreases by factor of 0.3
             self.config.dim_importances = np.array([0.3**i for i in range(dimension)])
 
-        env = DiffImportanceFineTuneSigmoidEnv(self.config, reward_shape=reward_shape, exp_reward=exp_reward)
+        env = DiffImportanceFineTuneSigmoidEnv(self.config, reward_shape=reward_shape, exp_reward=exp_reward, reverse_agents=reverse_agents)
         return env

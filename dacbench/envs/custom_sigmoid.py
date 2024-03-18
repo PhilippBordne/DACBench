@@ -76,7 +76,8 @@ class DiffImportanceSigmoidEnv(SigmoidEnv):
 
 class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
     # TODO: implement me
-    def __init__(self, config, reward_shape: str = 'linear', exp_reward: float = 4.6) -> None:
+    def __init__(self, config, reward_shape: str = 'linear', exp_reward: float = 4.6,
+                 reverse_agents: bool = False) -> None:
         """
         Parameters
         ----------
@@ -97,6 +98,8 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         elif reward_shape == 'exponential':
             self.exp_reward = exp_reward
             self.get_reward = self.get_exponential_reward
+
+        self.reverse_agents = reverse_agents
 
     def get_default_reward(self, _):
         """
@@ -141,10 +144,12 @@ class DiffImportanceFineTuneSigmoidEnv(DiffImportanceSigmoidEnv):
         if level is None:
             level = len(actions)
         importances = self.dim_importances
+
+        if self.reverse_agents:
+            actions = actions[::-1]  # change the order of the actions
+
         pred = actions[0] / (self.action_space.nvec[0] - 1)
-        # the other actions fine tune around first action according to their importance
-        # pred += np.sum(((2 * actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 1)
-        #                 * np.array(importances[1:level].reshape(-1, 1))), axis=0)
+
         pred += np.sum(((actions[1:level] / (self.action_space.nvec[1:level].reshape(-1, 1) - 1) - 0.5)
                         * np.array(importances[1:level]).reshape(-1, 1)), axis=0)
         return pred
