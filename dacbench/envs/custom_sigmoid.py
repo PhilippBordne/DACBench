@@ -31,9 +31,9 @@ class DiffImportanceSigmoidEnv(SigmoidEnv):
 
         self.get_reward = self.get_default_reward
 
-    def reset(self, seed=None, options={}) -> List[int]:
+    def reset(self, seed=None, instance_id=None, options={}) -> List[int]:
         # only prereset of parents to update the instance
-        super().reset_(seed)
+        super().reset_(seed, instance_id=instance_id, options=options)
         self.episode_actions = np.full((self.n_actions, self.n_steps), np.nan)
         self.episode_rewards = np.full((self.n_steps), np.nan)
         self.shifts = [self.instance[0]]

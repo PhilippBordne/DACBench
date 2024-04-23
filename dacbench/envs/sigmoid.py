@@ -72,7 +72,7 @@ class SigmoidEnv(AbstractMADACEnv):
         self._prev_state = next_state
         return next_state, self.get_reward(self), False, self.done, {}
 
-    def reset(self, seed=None, options={}) -> List[int]:
+    def reset(self, seed=None, instance_id=None, options={}) -> List[int]:
         """
         Resets env.
 
@@ -82,7 +82,7 @@ class SigmoidEnv(AbstractMADACEnv):
             Environment state
 
         """
-        super(SigmoidEnv, self).reset_(seed)
+        super(SigmoidEnv, self).reset_(seed, instance_id=instance_id)
         self.shifts = self.instance[: self.n_actions]
         self.slopes = self.instance[self.n_actions :]
         self._prev_state = None
