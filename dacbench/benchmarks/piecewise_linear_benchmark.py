@@ -3,13 +3,15 @@ from dacbench import AbstractBenchmark
 from dacbench.abstract_benchmark import objdict
 from dacbench.envs import PiecewiseLinearEnv
 from matplotlib import pyplot as plt
+import logging
 
 DEFAULT_DIM = 5
 
 
 # build random but seeded default instance set
+# for our experiments we used a fixed instance, generating train instances with seed 0 and test instances with seed 1
 DEFAULT_INSTANCE_SET = {}
-instance_set_rng = np.random.RandomState(1)
+instance_set_rng = np.random.RandomState(0)
 for i in range(300):
     inter_x = instance_set_rng.random() * 9
     inter_y = instance_set_rng.random()
@@ -33,7 +35,7 @@ PIECEWISE_LINEAR_DEFAULTS = {
     "exp_reward": 4.6,
     "dim_importances": [0.5**i for i in range(DEFAULT_DIM)],
     "reverse_agents": False,
-    "instance_set": DEFAULT_INSTANCE_SET,
+    # "instance_set": DEFAULT_INSTANCE_SET,
     "benchmark_info": "Piecewise Linear Benchmark",
 }
 
@@ -48,6 +50,11 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         super(PiecewiseLinearBenchmark, self).__init__(config_path, config)
         if not self.config:
             self.config = objdict(PIECEWISE_LINEAR_DEFAULTS.copy())
+
+        if not hasattr(self.config, "instance_set"):
+            self.read_instance_set()
+        if not hasattr(self.config, "test_instance_set"):
+            self.read_instance_set(test=True)
 
     def set_action_values(self, values, dim_importances=None) -> None:
         """
@@ -102,27 +109,42 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
             ax.plot([0, inter_x, 9], [y_start, inter_y, y_end], "k-")
             # ax.set_title(f"Instance {i}")
             ax.set_xlim(0, 9)
-            ax.set_ylim(0, 1)
+            ax.set_ylim(-0.1, 1.1)
             ax.set_xticks([])
             ax.set_yticks([])
             # ax.set_aspect("equal")
-
         fig.suptitle("Visualization of Piecewise Linear Benchmark Instances", fontweight="bold")
         fig.tight_layout(rect=(0, 0, 1, 0.98))
 
-    def read_instance_set(self, test: bool = False):
+    def read_instance_set(self, test: bool = False) -> None:
         """
         Read instance set from csv of shape (instance_id, inter_x, inter_y, grow).
         """
 
-        if not hasattr(self.config, "instance_set_path"):
-            raise ValueError("No instance set path provided in config.")
+        if not test:
+            if not hasattr(self.config, "instance_set_path"):
+                raise ValueError("No instance set path provided in config.")
+                return
+            path = self.config.instance_set_path
+        else:
+            if not hasattr(self.config, "test_instance_set_path"):
+                # warn that there is no test instance set path
+                logging.warning("No test instance set path provided in config.")
+                return
+            path = self.config.test_instance_set_path
 
         instance_set = {}
 
-        path 
-
-        with open(self.config.instance_set_path, "r") as f:
+        with open(path, "r") as f:
             for line in f:
                 instance_id, inter_x, inter_y, grow = line.strip().split(",")
-                instance_set[int(instance_id)] = (float(inter_x), float(inter_y), bool(grow))
+                # parse the grow strings to boolean
+                grow = grow.lower() == "true"
+                instance_set[int(instance_id)] = (float(inter_x), float(inter_y), grow)
+
+        if not test:
+            self.config.instance_set = instance_set
+        else:
+            self.config.test_instance_set = instance_set
+
+        return
