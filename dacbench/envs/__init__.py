@@ -10,6 +10,7 @@ from dacbench.envs.sigmoid import (
     ContinuousStateSigmoidEnv,
     SigmoidEnv,
 )
+from dacbench.envs.piecewise_linear import PiecewiseLinearEnv
 from dacbench.envs.theory import TheoryEnv
 from dacbench.envs.toysgd import ToySGDEnv
 from dacbench.envs.custom_sigmoid import DiffImportanceSigmoidEnv, DiffImportanceFineTuneSigmoidEnv

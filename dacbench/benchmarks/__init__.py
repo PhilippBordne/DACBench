@@ -14,6 +14,7 @@ __all__ = [
     "ToySGDBenchmark",
     "GeometricBenchmark",
     "FastDownwardBenchmark",
+    "PiecewiseLinearBenchmark",
 ]
 
 
