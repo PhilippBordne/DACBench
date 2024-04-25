@@ -47,6 +47,7 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         Problem instances are defined as tuples of the form (inter_x, inter_y, grow), where inter_x, inter_y are x- and y-coordinate
         of the intermediate point, and grow is a boolean indicating whether the function grows or shrinks through the intermediate point.
         """
+        config = objdict(config)
         super(PiecewiseLinearBenchmark, self).__init__(config_path, config)
         if not self.config:
             self.config = objdict(PIECEWISE_LINEAR_DEFAULTS.copy())
@@ -56,7 +57,7 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         if not hasattr(self.config, "test_instance_set"):
             self.read_instance_set(test=True)
 
-    def set_action_values(self, values, dim_importances=None) -> None:
+    def set_action_values(self, values, dim_importances: list=None) -> None:
         """
         Set action values for the environment. Note that the number of action values will determine action space dimensionality.
         Updates the action values and related configurations (e.g. relating to action and observation space and the dimension importances)
@@ -72,7 +73,7 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
             np.full(4 + len(values), np.inf)
         ]
         self.config.default_action = [v // 2 for v in values]
-        if dim_importances:
+        if dim_importances is not None:
             if len(dim_importances) != len(values):
                 raise ValueError("Dimension importances must have same length as action values.")
             self.config.dim_importances = dim_importances
