@@ -66,11 +66,14 @@ class SigmoidEnv(AbstractMADACEnv):
             state, reward, terminated, truncated, info
 
         """
-        self.done = super(SigmoidEnv, self).step_()
+        # first compute the reward for the current time step then call the parent step method because it will increment
+        # the step counter
         self.last_action = action
+        reward = self.get_reward(self)
+        self.done = super(SigmoidEnv, self).step_()
         next_state = self.get_state(self)
         self._prev_state = next_state
-        return next_state, self.get_reward(self), False, self.done, {}
+        return next_state, reward, False, self.done, {}
 
     def reset(self, seed=None, instance_id=None, options={}) -> List[int]:
         """
