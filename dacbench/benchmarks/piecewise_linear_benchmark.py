@@ -47,7 +47,6 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         Problem instances are defined as tuples of the form (inter_x, inter_y, grow), where inter_x, inter_y are x- and y-coordinate
         of the intermediate point, and grow is a boolean indicating whether the function grows or shrinks through the intermediate point.
         """
-        config = objdict(config)
         super(PiecewiseLinearBenchmark, self).__init__(config_path, config)
         if not self.config:
             self.config = objdict(PIECEWISE_LINEAR_DEFAULTS.copy())
@@ -100,7 +99,7 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         """
         Renders all the problem instances of the benchmark.
         """
-        cols = 10
+        cols = 20
         rows = len(self.config.instance_set) // cols
         fig, axes = plt.subplots(rows, cols, figsize=(2 * cols, rows))
 
