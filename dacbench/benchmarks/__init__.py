@@ -7,6 +7,7 @@ from dacbench.benchmarks.geometric_benchmark import GeometricBenchmark
 from dacbench.benchmarks.luby_benchmark import LubyBenchmark
 from dacbench.benchmarks.sigmoid_benchmark import SigmoidBenchmark
 from dacbench.benchmarks.toysgd_benchmark import ToySGDBenchmark
+from dacbench.benchmarks.piecewise_linear_benchmark import PiecewiseLinearBenchmark
 
 __all__ = [
     "LubyBenchmark",

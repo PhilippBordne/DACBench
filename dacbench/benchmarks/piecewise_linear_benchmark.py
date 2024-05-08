@@ -4,6 +4,7 @@ from dacbench.abstract_benchmark import objdict
 from dacbench.envs import PiecewiseLinearEnv
 from matplotlib import pyplot as plt
 import logging
+import os
 
 DEFAULT_DIM = 5
 
@@ -35,7 +36,8 @@ PIECEWISE_LINEAR_DEFAULTS = {
     "exp_reward": 4.6,
     "dim_importances": [0.5**i for i in range(DEFAULT_DIM)],
     "reverse_agents": False,
-    # "instance_set": DEFAULT_INSTANCE_SET,
+    "instance_set_path": "../instance_sets/piecewise_linear/piecewise_linear_train.csv",
+    "test_set_path": "../instance_sets/piecewise_linear/piecewise_linear_test.csv",
     "benchmark_info": "Piecewise Linear Benchmark",
 }
 
@@ -50,11 +52,6 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         super(PiecewiseLinearBenchmark, self).__init__(config_path, config)
         if not self.config:
             self.config = objdict(PIECEWISE_LINEAR_DEFAULTS.copy())
-
-        if not hasattr(self.config, "instance_set"):
-            self.read_instance_set()
-        if not hasattr(self.config, "test_instance_set"):
-            self.read_instance_set(test=True)
 
     def set_action_values(self, values, dim_importances: list=None) -> None:
         """
@@ -92,7 +89,10 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         """
         # check whether an instance_set is part of the config
         if not hasattr(self.config, "instance_set"):
-            raise ValueError("No instance set provided in config and loading an instance set is not implemented yet.")
+            self.read_instance_set()
+        if not hasattr(self.config, "test_instance_set") and hasattr(self.config, "test_instance_set_path"):
+            self.read_instance_set(test=True)
+
         return PiecewiseLinearEnv(self.config)
 
     def render_instances(self):
@@ -120,18 +120,18 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         """
         Read instance set from csv of shape (instance_id, inter_x, inter_y, grow).
         """
-
+        path = os.path.dirname(os.path.abspath(__file__))
         if not test:
             if not hasattr(self.config, "instance_set_path"):
                 raise ValueError("No instance set path provided in config.")
                 return
-            path = self.config.instance_set_path
+            path += "/" + self.config.instance_set_path
         else:
             if not hasattr(self.config, "test_instance_set_path"):
                 # warn that there is no test instance set path
                 logging.warning("No test instance set path provided in config.")
                 return
-            path = self.config.test_instance_set_path
+            path += "/" + self.config.test_instance_set_path
 
         instance_set = {}
 
