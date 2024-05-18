@@ -36,8 +36,8 @@ PIECEWISE_LINEAR_DEFAULTS = {
     "exp_reward": 4.6,
     "dim_importances": [0.5**i for i in range(DEFAULT_DIM)],
     "reverse_agents": False,
-    "instance_set_path": "../instance_sets/piecewise_linear/piecewise_linear_train.csv",
-    "test_set_path": "../instance_sets/piecewise_linear/piecewise_linear_test.csv",
+    "instance_set_path": os.path.dirname(os.path.abspath(__file__)) + "/" + "../instance_sets/piecewise_linear/piecewise_linear_train.csv",
+    "test_instance_set_path": os.path.dirname(os.path.abspath(__file__)) + "/" + "../instance_sets/piecewise_linear/piecewise_linear_test.csv",
     "benchmark_info": "Piecewise Linear Benchmark",
 }
 
@@ -53,7 +53,7 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         if not self.config:
             self.config = objdict(PIECEWISE_LINEAR_DEFAULTS.copy())
 
-    def set_action_values(self, values, dim_importances: list=None) -> None:
+    def set_action_values(self, values, dim_importances: list = None) -> None:
         """
         Set action values for the environment. Note that the number of action values will determine action space dimensionality.
         Updates the action values and related configurations (e.g. relating to action and observation space and the dimension importances)
@@ -116,22 +116,25 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         fig.suptitle("Visualization of Piecewise Linear Benchmark Instances", fontweight="bold")
         fig.tight_layout(rect=(0, 0, 1, 0.98))
 
-    def read_instance_set(self, test: bool = False) -> None:
+    def read_instance_set(self, test: bool = False, path: str = None) -> None:
         """
         Read instance set from csv of shape (instance_id, inter_x, inter_y, grow).
+        If path is provided update the path of the benchmakr and read the instance set from there.
         """
-        path = os.path.dirname(os.path.abspath(__file__))
         if not test:
             if not hasattr(self.config, "instance_set_path"):
                 raise ValueError("No instance set path provided in config.")
-                return
-            path += "/" + self.config.instance_set_path
+            if path is not None:
+                self.config.instance_set_path = path
+            path = self.config.instance_set_path
         else:
             if not hasattr(self.config, "test_instance_set_path"):
                 # warn that there is no test instance set path
                 logging.warning("No test instance set path provided in config.")
                 return
-            path += "/" + self.config.test_instance_set_path
+            if path is not None:
+                self.config.test_instance_set_path = path
+            path = self.config.test_instance_set_path
 
         instance_set = {}
 
@@ -145,6 +148,6 @@ class PiecewiseLinearBenchmark(AbstractBenchmark):
         if not test:
             self.config.instance_set = instance_set
         else:
-            self.config.test_instance_set = instance_set
+            self.config.test_set = instance_set
 
         return
