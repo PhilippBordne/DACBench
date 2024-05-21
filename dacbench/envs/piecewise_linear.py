@@ -129,7 +129,7 @@ class PiecewiseLinearEnv(AbstractMADACEnv):
 
     def _get_target(self, t: int = None):
         t = self.c_step if t is None else t
-        if self.c_step <= self.inter_x:
+        if t <= self.inter_x:
             target = self.left_y + (self.inter_y - self.left_y) / self.inter_x * t
         else:
             target = self.inter_y + (self.right_y - self.inter_y) / (self.n_steps - 1 - self.inter_x) * (t - self.inter_x)
