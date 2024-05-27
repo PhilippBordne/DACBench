@@ -110,8 +110,9 @@ class PiecewiseLinearEnv(AbstractMADACEnv):
         return target
 
     def _compute_pred_from_actions(self) -> np.ndarray:
-        pred = self.last_action[0] / (self.action_space.nvec[0] - 1)
-        unweighted_preds = self.last_action[1:] / (self.action_space.nvec[1:] - 1) - 0.5
+        actions = self.last_action if not self.reverse_agents else self.last_action[::-1]
+        pred = actions[0] / (self.action_space.nvec[0] - 1)
+        unweighted_preds = actions[1:] / (self.action_space.nvec[1:] - 1) - 0.5
         pred += np.sum(unweighted_preds * self.dim_importances[1:])
         return pred
 
