@@ -169,7 +169,7 @@ class PiecewiseLinearEnv(AbstractMADACEnv):
                          condlist=[x <= self.inter_x, x > self.inter_x],
                          funclist=[lambda x: self.left_y + (self.inter_y - self.left_y) / self.inter_x * x,
                                    lambda x: self.inter_y + (self.right_y - self.inter_y) / (self.n_steps - 1 - self.inter_x) * (x - self.inter_x)])
-        ax.plot(x, y, zorder=0, color="tab:orange", label="target function")
+        ax.plot(x, y, zorder=1, color="tab:orange", label="target function")
         episode_actions = self.episode_actions[:, :self.c_step + 1]
         predictions = np.full((self.n_actions, self.c_step), np.nan)
         for i in range(self.n_actions):
@@ -178,10 +178,10 @@ class PiecewiseLinearEnv(AbstractMADACEnv):
         # create viridis color map, with one color per action dimension
         colors = plt.cm.viridis_r(np.linspace(0, 1, self.n_actions))
         for i, pred in enumerate(predictions):
-            ax.scatter(range(self.c_step), pred, marker="o", color=colors[i], zorder=i + 1, label=f"actions aggregated up to dim {i}",
-                       alpha=0.3 + 0.7 * (i + 1) / self.n_actions, edgecolors="none")
+            ax.scatter(range(self.c_step), pred, marker="o", color=colors[i], zorder=i + 2, label=f"actions aggregated up to dim {i}",
+                       alpha=0.5 + 0.5 * (i + 1) / self.n_actions, edgecolors="none")
         # plot a line that connects the highest level of aggregation
-        ax.plot(range(self.c_step), predictions[-1], color=colors[-1], zorder=self.n_actions + 1, label="aggregated prediction",
+        ax.plot(range(self.c_step), predictions[-1], color=colors[-1], zorder=self.n_actions + 2, label="aggregated prediction",
                 linestyle=":")
 
         if fill_external_ax and add_legend:
